@@ -1,0 +1,27 @@
+# Frontend
+node_modules/
+frontend/dist/
+tsconfig.tsbuildinfo
+package-lock.json
+
+# Backend
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+
+# IDE
+.vscode/
+.idea/
+
+# System
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*

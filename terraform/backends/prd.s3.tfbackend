@@ -1,0 +1,5 @@
+bucket         = "oil-dashboard-tfstate-prd"
+key            = "oil-dashboard/terraform.tfstate"
+region         = "ap-northeast-1"
+dynamodb_table = "oil-dashboard-tfstate-lock-prd"
+profile        = "prd"

@@ -1,0 +1,14 @@
+{
+  "title": "일본 석유 비축량",
+  "national": "국가 비축",
+  "private": "민간 비축",
+  "cooperative": "산유국 협력 비축",
+  "total": "합계",
+  "days": "일",
+  "daysUnit": "{{count}} 일",
+  "lastUpdated": "최종 업데이트",
+  "loading": "로딩 중...",
+  "error": "데이터를 가져오지 못했습니다",
+  "language": "언어",
+  "chartTitle": "석유 비축량 추이 (일수)"
+}

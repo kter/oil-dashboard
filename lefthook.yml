@@ -1,0 +1,15 @@
+pre-commit:
+  commands:
+    format-check:
+      run: make format-check
+    lint:
+      run: make lint
+    unit-tests:
+      run: make test
+
+pre-push:
+  commands:
+    unit-tests:
+      run: make test
+    integration-tests:
+      run: make be-test-integration

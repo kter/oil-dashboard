@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.venv/
+
+# Build
+frontend/dist/
+*.pyc
+__pycache__/
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+
+# Build artifacts
+*.zip

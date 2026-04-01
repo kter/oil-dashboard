@@ -1,0 +1,14 @@
+{
+  "title": "Japan Oil Reserves",
+  "national": "National Reserves",
+  "private": "Private Reserves",
+  "cooperative": "Cooperative Reserves",
+  "total": "Total",
+  "days": "days",
+  "daysUnit": "{{count}} days",
+  "lastUpdated": "Last updated",
+  "loading": "Loading...",
+  "error": "Failed to fetch data",
+  "language": "Language",
+  "chartTitle": "Oil Reserves Trend (Days)"
+}

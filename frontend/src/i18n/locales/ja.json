@@ -1,0 +1,14 @@
+{
+  "title": "日本の石油備蓄量",
+  "national": "国家備蓄",
+  "private": "民間備蓄",
+  "cooperative": "産油国協働備蓄",
+  "total": "合計",
+  "days": "日",
+  "daysUnit": "{{count}} 日",
+  "lastUpdated": "最終更新",
+  "loading": "読み込み中...",
+  "error": "データの取得に失敗しました",
+  "language": "言語",
+  "chartTitle": "石油備蓄量の推移（日数）"
+}

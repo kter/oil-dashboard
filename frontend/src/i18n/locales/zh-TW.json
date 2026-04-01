@@ -1,0 +1,14 @@
+{
+  "title": "日本石油儲備量",
+  "national": "國家儲備",
+  "private": "民間儲備",
+  "cooperative": "產油國合作儲備",
+  "total": "合計",
+  "days": "天",
+  "daysUnit": "{{count}} 天",
+  "lastUpdated": "最後更新",
+  "loading": "載入中...",
+  "error": "無法取得資料",
+  "language": "語言",
+  "chartTitle": "石油儲備量趨勢（天數）"
+}

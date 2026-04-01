@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "stop_hook": {
+      "commands": ["$CLAUDE_PROJECT_DIR/scripts/agent_stop_hook_unit_tests.sh"]
+    },
+    "pre_tool_use_hook": {
+      "matcher": ["Bash"],
+      "commands": ["$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use-block-destructive-commands.sh"]
+    },
+    "post_tool_use_hook": {
+      "matcher": ["Edit", "MultiEdit", "Write"],
+      "commands": ["$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use-format-and-lint.sh"]
+    }
+  }
+}
