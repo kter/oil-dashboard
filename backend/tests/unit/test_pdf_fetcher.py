@@ -1,9 +1,8 @@
-from unittest.mock import patch
-
 import responses
 
 from pdf_fetcher import (
     BASE_URL,
+    HEADERS,
     check_url_exists,
     find_latest_pdf_url,
     get_historical_pdf_urls,
@@ -34,7 +33,7 @@ def test_find_latest_pdf_url_not_found():
     """Test returns None when no PDF is found."""
     # Register a passthrough that returns 404 for all HEAD requests
     responses.add(responses.HEAD, f"{BASE_URL}/0101.pdf", status=404)
-    result = find_latest_pdf_url(max_days_back=1)
+    find_latest_pdf_url(max_days_back=1)
     # With only 1 day back, might hit the registered URL or not
     # The key thing is it returns a url or None without crashing
 
@@ -57,6 +56,7 @@ def test_check_url_exists_true():
     url = f"{BASE_URL}/2602.pdf"
     responses.add(responses.HEAD, url, status=200)
     assert check_url_exists(url) is True
+    assert responses.calls[0].request.headers["User-Agent"] == HEADERS["User-Agent"]
 
 
 @responses.activate

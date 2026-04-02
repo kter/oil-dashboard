@@ -1,6 +1,6 @@
 env              = "prd"
 aws_profile      = "prd"
 aws_region       = "ap-northeast-1"
-frontend_domain  = "oil.devtools.site"
-api_domain       = "api.oil.devtools.site"
+frontend_domain  = "oil-dashboard.devtools.site"
+api_domain       = "api.oil-dashboard.devtools.site"
 hosted_zone_name = "devtools.site"

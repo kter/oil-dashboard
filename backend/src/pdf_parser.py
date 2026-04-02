@@ -1,146 +1,94 @@
+import base64
+import json
 import logging
+import os
 import re
-from io import BytesIO
 
-import pdfplumber
+import boto3
 
 from models import ReserveRecord
 
 logger = logging.getLogger(__name__)
 
-# Japanese era year mappings
-ERA_PATTERNS = {
-    "令和": 2018,  # 令和1年 = 2019, so base is 2018
-    "平成": 1988,  # 平成1年 = 1989, so base is 1988
-}
+BEDROCK_MODEL_ID = "anthropic.claude-sonnet-4-6"
 
+PROMPT = """このPDFは日本の石油備蓄量データです。全データをJSONで抽出してください。
 
-def parse_japanese_date(text: str) -> str | None:
-    """Parse Japanese era date like '令和7年2月末' to ISO date 'YYYY-MM-DD'.
+[{"date":"YYYY-MM-DD","national_days":数値,"private_days":数値,"cooperative_days":数値}, ...]
 
-    Returns the last day of the month.
-    """
-    for era, base_year in ERA_PATTERNS.items():
-        match = re.search(rf"{era}\s*(\d+)\s*年\s*(\d+)\s*月", text)
-        if match:
-            year = base_year + int(match.group(1))
-            month = int(match.group(2))
-            # Get last day of month
-            if month == 12:
-                next_month_year = year + 1
-                next_month = 1
-            else:
-                next_month_year = year
-                next_month = month + 1
-            from datetime import date, timedelta
-
-            last_day = date(next_month_year, next_month, 1) - timedelta(days=1)
-            return last_day.isoformat()
-    return None
-
-
-def extract_number(text: str) -> float | None:
-    """Extract a numeric value from text, handling Japanese number formatting."""
-    if not text:
-        return None
-    # Remove commas, spaces, and other non-numeric chars except dots
-    cleaned = re.sub(r"[^\d.]", "", text.strip())
-    if not cleaned:
-        return None
-    try:
-        return float(cleaned)
-    except ValueError:
-        return None
+- dateは各エントリの「（〇月〇日時点）」の日付をISO形式で（年は令和換算: 令和1年=2019年）
+- 国家備蓄・民間備蓄・産油国共同備蓄の日数を抽出（全角数字は半角に変換）
+- 産油国共同備蓄がない場合は0
+- JSON配列のみ返す（説明不要）"""
 
 
 def parse_pdf(content: bytes, source_url: str) -> list[ReserveRecord]:
-    """Parse an ENECHO oil reserves PDF and extract reserve data.
+    """Parse an ENECHO oil reserves PDF using Amazon Bedrock (Claude).
 
-    The PDF contains a table with rows for different reserve types:
-    - 国家備蓄 (National reserves)
-    - 民間備蓄 (Private reserves)
-    - 産油国共同備蓄 / 産油国協力備蓄 (Cooperative reserves)
-
-    Each row contains reserve amounts in various units, including days (日数).
+    Sends the PDF directly to Claude via the Bedrock document API and extracts
+    all daily reserve records as structured JSON.
     """
-    records: list[ReserveRecord] = []
+    client = boto3.client(
+        "bedrock-runtime",
+        region_name=os.environ.get("AWS_REGION", "ap-northeast-1"),
+    )
+    body = {
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": 2048,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "document",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "application/pdf",
+                            "data": base64.b64encode(content).decode(),
+                        },
+                    },
+                    {"type": "text", "text": PROMPT},
+                ],
+            }
+        ],
+    }
+
+    model_id = os.environ.get("BEDROCK_MODEL_ID", BEDROCK_MODEL_ID)
+    resp = client.invoke_model(modelId=model_id, body=json.dumps(body))
+    text = json.loads(resp["body"].read())["content"][0]["text"].strip()
+
+    # Strip markdown code fences if Claude wrapped the JSON
+    if text.startswith("```"):
+        text = re.sub(r"^```[^\n]*\n?", "", text)
+        text = re.sub(r"\n?```$", "", text.rstrip())
 
     try:
-        pdf = pdfplumber.open(BytesIO(content))
-    except Exception as e:
-        logger.error("Failed to open PDF: %s", e)
-        return records
-
-    data_date = None
-    national_days = None
-    private_days = None
-    cooperative_days = None
-
-    try:
-        for page in pdf.pages:
-            text = page.extract_text() or ""
-
-            # Try to extract date from page text
-            if not data_date:
-                data_date = parse_japanese_date(text)
-
-            # Extract tables
-            tables = page.extract_tables()
-            for table in tables:
-                for row in table:
-                    if not row:
-                        continue
-                    row_text = " ".join(cell or "" for cell in row)
-
-                    # Look for reserve type rows and extract days column
-                    if "国家備蓄" in row_text and "民間" not in row_text:
-                        national_days = _extract_days_from_row(row)
-                    elif "民間備蓄" in row_text:
-                        private_days = _extract_days_from_row(row)
-                    elif "産油国" in row_text and ("共同" in row_text or "協同" in row_text or "協力" in row_text or "協働" in row_text):
-                        cooperative_days = _extract_days_from_row(row)
-    finally:
-        pdf.close()
-
-    if data_date and national_days is not None and private_days is not None:
-        # Cooperative reserves may be 0 or missing for some periods
-        coop = cooperative_days if cooperative_days is not None else 0.0
-        record = ReserveRecord.create(
-            date=data_date,
-            national_days=national_days,
-            private_days=private_days,
-            cooperative_days=coop,
-            source_pdf=source_url,
-        )
-        records.append(record)
-        logger.info("Parsed record: date=%s, national=%.1f, private=%.1f, coop=%.1f", data_date, national_days, private_days, coop)
-    else:
+        items = json.loads(text)
+    except json.JSONDecodeError as e:
         logger.warning(
-            "Incomplete data from %s: date=%s, national=%s, private=%s, coop=%s",
-            source_url, data_date, national_days, private_days, cooperative_days,
+            "Bedrock returned invalid JSON from %s: %s\nResponse: %s", source_url, e, text[:500]
         )
+        return []
+
+    records = []
+    for item in items:
+        try:
+            record = ReserveRecord.create(
+                date=item["date"],
+                national_days=float(item["national_days"]),
+                private_days=float(item["private_days"]),
+                cooperative_days=float(item.get("cooperative_days", 0)),
+                source_pdf=source_url,
+            )
+            records.append(record)
+            logger.info(
+                "Parsed: %s national=%.1f private=%.1f coop=%.1f",
+                item["date"],
+                item["national_days"],
+                item["private_days"],
+                item.get("cooperative_days", 0),
+            )
+        except (KeyError, ValueError, TypeError) as e:
+            logger.warning("Skipping malformed record %s: %s", item, e)
 
     return records
-
-
-def _extract_days_from_row(row: list[str | None]) -> float | None:
-    """Extract the days value from a table row.
-
-    The days column is typically the last numeric column in the row.
-    We look for values that are reasonable day counts (1-500).
-    """
-    candidates: list[float] = []
-    for cell in reversed(row):
-        val = extract_number(cell)
-        if val is not None and 1 <= val <= 500:
-            candidates.append(val)
-            if len(candidates) >= 3:
-                break
-
-    # The days value is usually a relatively small number (< 300)
-    # compared to volume numbers (tens of thousands)
-    for val in candidates:
-        if val < 300:
-            return val
-
-    return candidates[0] if candidates else None

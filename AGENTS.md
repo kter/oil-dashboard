@@ -9,7 +9,7 @@ Japan oil reserves dashboard. Visualizes national (国家備蓄), private (民�
 - **Frontend**: React + Vite + TypeScript SPA deployed to S3 + CloudFront
 - **Backend**: Python 3.12 + FastAPI on AWS Lambda (Docker) + API Gateway + DynamoDB
 - **Infrastructure**: Terraform with workspaces (dev/prd), separate AWS accounts
-- **Domains**: Frontend: `oil.{dev.}devtools.site`, API: `api.oil.{dev.}devtools.site`
+- **Domains**: Frontend: `oil-dashboard.{dev.}devtools.site`, API: `api.oil-dashboard.{dev.}devtools.site`
 
 ## Canonical Entry Point
 

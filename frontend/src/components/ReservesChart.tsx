@@ -28,6 +28,7 @@ export function ReservesChart({ data }: ReservesChartProps) {
 
   return (
     <div
+      data-testid="reserves-chart"
       style={{
         background: tokens.colors.surface,
         borderRadius: tokens.borderRadius,

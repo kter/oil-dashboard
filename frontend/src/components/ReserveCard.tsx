@@ -12,6 +12,7 @@ export function ReserveCard({ label, days, color }: ReserveCardProps) {
 
   return (
     <div
+      data-testid="reserve-card"
       style={{
         background: tokens.colors.surface,
         borderRadius: tokens.borderRadius,

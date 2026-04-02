@@ -21,6 +21,7 @@ export function Header({ lastUpdated }: HeaderProps) {
       }}
     >
       <h1
+        data-testid="header-title"
         style={{
           fontSize: "20px",
           fontWeight: "bold",

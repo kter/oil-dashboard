@@ -1,6 +1,6 @@
 env              = "dev"
 aws_profile      = "dev"
 aws_region       = "ap-northeast-1"
-frontend_domain  = "oil.dev.devtools.site"
-api_domain       = "api.oil.dev.devtools.site"
+frontend_domain  = "oil-dashboard.dev.devtools.site"
+api_domain       = "api.oil-dashboard.dev.devtools.site"
 hosted_zone_name = "dev.devtools.site"

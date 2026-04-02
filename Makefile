@@ -5,6 +5,7 @@
 	tf-init tf-plan tf-apply tf-fmt tf-validate tf-state-init \
 	deploy deploy-frontend deploy-backend \
 	lint format format-check test test-all \
+	e2e-install e2e e2e-headed e2e-report \
 	stop-hook-unit-tests claude-post-tool-use
 
 # === Variables ===
@@ -17,11 +18,11 @@ BE_DIR := backend
 
 # Environment-specific settings
 ifeq ($(ENV),prd)
-  FRONTEND_DOMAIN := oil.devtools.site
-  API_DOMAIN := api.oil.devtools.site
+  FRONTEND_DOMAIN := oil-dashboard.devtools.site
+  API_DOMAIN := api.oil-dashboard.devtools.site
 else
-  FRONTEND_DOMAIN := oil.dev.devtools.site
-  API_DOMAIN := api.oil.dev.devtools.site
+  FRONTEND_DOMAIN := oil-dashboard.dev.devtools.site
+  API_DOMAIN := api.oil-dashboard.dev.devtools.site
 endif
 
 # === Setup ===
@@ -77,10 +78,10 @@ be-format-check:
 	cd $(BE_DIR) && uv run ruff format --check src/ tests/
 
 be-docker-build:
-	cd $(BE_DIR) && docker build --platform linux/amd64 -t oil-dashboard-api:$(ENV) .
+	cd $(BE_DIR) && docker build --platform linux/amd64 --provenance=false -t oil-dashboard-api:$(ENV) .
 
 be-docker-push:
-	$(eval ECR_REPO := $(shell AWS_PROFILE=$(AWS_PROFILE) aws ecr describe-repositories --repository-names oil-dashboard-api --region $(AWS_REGION) --query 'repositories[0].repositoryUri' --output text))
+	$(eval ECR_REPO := $(shell AWS_PROFILE=$(AWS_PROFILE) aws ecr describe-repositories --repository-names oil-dashboard-api-$(ENV) --region $(AWS_REGION) --query 'repositories[0].repositoryUri' --output text))
 	AWS_PROFILE=$(AWS_PROFILE) aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(ECR_REPO)
 	docker tag oil-dashboard-api:$(ENV) $(ECR_REPO):latest
 	docker push $(ECR_REPO):latest
@@ -111,7 +112,7 @@ deploy-backend: be-docker-build be-docker-push
 	$(eval FUNCTION_NAME := oil-dashboard-api-$(ENV))
 	AWS_PROFILE=$(AWS_PROFILE) aws lambda update-function-code \
 		--function-name $(FUNCTION_NAME) \
-		--image-uri $(shell AWS_PROFILE=$(AWS_PROFILE) aws ecr describe-repositories --repository-names oil-dashboard-api --region $(AWS_REGION) --query 'repositories[0].repositoryUri' --output text):latest \
+		--image-uri $(shell AWS_PROFILE=$(AWS_PROFILE) aws ecr describe-repositories --repository-names oil-dashboard-api-$(ENV) --region $(AWS_REGION) --query 'repositories[0].repositoryUri' --output text):latest \
 		--region $(AWS_REGION)
 
 deploy-frontend: fe-build
@@ -119,6 +120,21 @@ deploy-frontend: fe-build
 	AWS_PROFILE=$(AWS_PROFILE) aws s3 sync $(FE_DIR)/dist s3://$(S3_BUCKET) --delete --region $(AWS_REGION)
 	$(eval CF_DIST_ID := $(shell AWS_PROFILE=$(AWS_PROFILE) aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[?contains(@,'$(FRONTEND_DOMAIN)')]].Id | [0]" --output text))
 	AWS_PROFILE=$(AWS_PROFILE) aws cloudfront create-invalidation --distribution-id $(CF_DIST_ID) --paths "/*"
+
+# === E2E (Playwright) ===
+E2E_DIR := e2e
+
+e2e-install:
+	cd $(E2E_DIR) && npm install && npx playwright install chromium
+
+e2e:
+	cd $(E2E_DIR) && BASE_URL=https://$(FRONTEND_DOMAIN) npx playwright test
+
+e2e-headed:
+	cd $(E2E_DIR) && BASE_URL=https://$(FRONTEND_DOMAIN) npx playwright test --headed
+
+e2e-report:
+	cd $(E2E_DIR) && npx playwright show-report
 
 # === Quality ===
 lint: fe-lint be-lint tf-fmt

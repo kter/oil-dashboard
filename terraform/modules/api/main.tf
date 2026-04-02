@@ -16,7 +16,7 @@ resource "aws_dynamodb_table" "reserves" {
 
 # ECR repository for Lambda Docker image
 resource "aws_ecr_repository" "api" {
-  name                 = "oil-dashboard-api"
+  name                 = "oil-dashboard-api-${var.env}"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -81,6 +81,14 @@ resource "aws_iam_role_policy" "lambda" {
         ]
         Resource = "arn:aws:logs:*:*:*"
       },
+      {
+        Effect   = "Allow"
+        Action   = ["bedrock:InvokeModel"]
+        Resource = [
+          "arn:aws:bedrock:*::foundation-model/*",
+          "arn:aws:bedrock:${var.aws_region}:*:inference-profile/*",
+        ]
+      },
     ]
   })
 }
@@ -96,10 +104,10 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      ENV             = var.env
-      DYNAMODB_TABLE  = aws_dynamodb_table.reserves.name
-      AWS_REGION      = var.aws_region
-      FRONTEND_DOMAIN = "https://${var.frontend_domain}"
+      ENV              = var.env
+      DYNAMODB_TABLE   = aws_dynamodb_table.reserves.name
+      FRONTEND_DOMAIN  = "https://${var.frontend_domain}"
+      BEDROCK_MODEL_ID = "jp.anthropic.claude-sonnet-4-6"
     }
   }
 

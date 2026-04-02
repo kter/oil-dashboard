@@ -5,9 +5,11 @@ import boto3
 
 from models import ReserveRecord
 
+
 def _get_table():
     table_name = os.environ.get("DYNAMODB_TABLE", "oil-reserves-dev")
-    dynamodb = boto3.resource("dynamodb", region_name=os.environ.get("AWS_REGION", "ap-northeast-1"))
+    region = os.environ.get("AWS_REGION", "ap-northeast-1")
+    dynamodb = boto3.resource("dynamodb", region_name=region)
     return dynamodb.Table(table_name)
 
 
@@ -40,13 +42,15 @@ def get_all_records() -> list[dict]:
     # Convert Decimal to float and sort by date
     records = []
     for item in items:
-        records.append({
-            "date": item["date"],
-            "national_days": float(item["national_days"]),
-            "private_days": float(item["private_days"]),
-            "cooperative_days": float(item["cooperative_days"]),
-            "total_days": float(item["total_days"]),
-        })
+        records.append(
+            {
+                "date": item["date"],
+                "national_days": float(item["national_days"]),
+                "private_days": float(item["private_days"]),
+                "cooperative_days": float(item["cooperative_days"]),
+                "total_days": float(item["total_days"]),
+            }
+        )
     records.sort(key=lambda r: r["date"])
     return records
 

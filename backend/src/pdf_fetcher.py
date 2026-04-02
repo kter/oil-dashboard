@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.enecho.meti.go.jp/statistics/petroleum_and_lpgas/pl001/pdf-oil-res"
 REQUEST_TIMEOUT = 30
+HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 
 def find_latest_pdf_url(max_days_back: int = 30) -> str | None:
@@ -20,7 +21,9 @@ def find_latest_pdf_url(max_days_back: int = 30) -> str | None:
         filename = d.strftime("%m%d") + ".pdf"
         url = f"{BASE_URL}/{filename}"
         try:
-            response = requests.head(url, timeout=REQUEST_TIMEOUT, allow_redirects=True)
+            response = requests.head(
+                url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=HEADERS
+            )
             if response.status_code == 200:
                 logger.info("Found latest PDF: %s", url)
                 return url
@@ -54,7 +57,9 @@ def get_historical_pdf_urls(months_back: int = 12) -> list[str]:
 def check_url_exists(url: str) -> bool:
     """Check if a URL exists via HEAD request."""
     try:
-        response = requests.head(url, timeout=REQUEST_TIMEOUT, allow_redirects=True)
+        response = requests.head(
+            url, timeout=REQUEST_TIMEOUT, allow_redirects=True, headers=HEADERS
+        )
         return response.status_code == 200
     except requests.RequestException:
         return False
@@ -63,7 +68,7 @@ def check_url_exists(url: str) -> bool:
 def download_pdf(url: str) -> bytes | None:
     """Download a PDF and return its content."""
     try:
-        response = requests.get(url, timeout=REQUEST_TIMEOUT)
+        response = requests.get(url, timeout=REQUEST_TIMEOUT, headers=HEADERS)
         response.raise_for_status()
         return response.content
     except requests.RequestException as e:
