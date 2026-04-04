@@ -103,7 +103,8 @@ tf-validate:
 	cd $(TF_DIR) && terraform validate
 
 tf-state-init:
-	cd $(TF_DIR)/modules/state && AWS_PROFILE=$(AWS_PROFILE) terraform init && terraform apply -var="env=$(ENV)"
+	cd $(TF_DIR)/modules/state && terraform init && terraform workspace select $(ENV) || terraform workspace new $(ENV)
+	cd $(TF_DIR)/modules/state && terraform apply -var="env=$(ENV)" -var="aws_profile=$(AWS_PROFILE)"
 
 # === Deploy ===
 deploy: deploy-backend deploy-frontend
